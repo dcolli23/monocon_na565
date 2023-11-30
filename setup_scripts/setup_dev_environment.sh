@@ -18,7 +18,7 @@ cd "${SCRIPT_DIR}"
 ## Clone the repository.
 ## ---------------------
 git clone https://github.com/dcolli23/monocon_na565.git
-cd monocon-na565
+cd monocon_na565
 
 ## Setup Anaconda environment.
 ## ---------------------------
@@ -28,11 +28,11 @@ cd monocon-na565
 conda create --name "${ANACONDA_ENVIRONMENT_NAME}" "python=${PYTHON_VERSION}"
 # conda activate "${ANACONDA_ENVIRONMENT_NAME}"
 
-conda run -n "${ANACONDA_ENVIRONMENT_NAME}" ./install_pytorch.sh
+conda run -n "${ANACONDA_ENVIRONMENT_NAME}" "${SCRIPT_DIR}/install_pytorch.sh"
 
 # [Step 4]: Install some packages using 'requirements.txt' in the repository.
 #           The version of numpy must be 1.22.4.
-conda run -n "${ANACONDA_ENVIRONMENT_NAME}" pip install -r requirements.txt
+conda run -n "${ANACONDA_ENVIRONMENT_NAME}" pip install -r "${SCRIPT_DIR}/monocon_na565/requirements.txt"
 
 # [Step 5]
 conda run -n "${ANACONDA_ENVIRONMENT_NAME}" install cudatoolkit
