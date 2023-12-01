@@ -15,7 +15,7 @@ _C.USE_BENCHMARK = True                          # Value of 'torch.backends.cudn
 
 # Data
 _C.DATA = CN()
-_C.DATA.ROOT = 'PATH_TO_DATASET_KITTI_FORMAT'                  # Dataset directory
+_C.DATA.ROOT = '/home/rahulhk/data'                  # Dataset directory
 _C.DATA.BATCH_SIZE = 8
 _C.DATA.NUM_WORKERS = 4
 _C.DATA.TRAIN_SPLIT = 'train'

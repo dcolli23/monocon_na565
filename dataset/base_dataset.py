@@ -24,7 +24,7 @@ class BaseKITTIMono3DDataset(Dataset):
                  preload_gt_info: bool = False):
         
         super().__init__()
-        
+        print(f"Accessing: {base_root}")
         assert os.path.isdir(base_root)
         self.base_root = base_root
         
