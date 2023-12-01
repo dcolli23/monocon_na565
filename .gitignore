@@ -6,3 +6,14 @@ checkpoint/
 *.pth
 dataset/debug_tools.py
 debugger/
+# Since the root folder of where the data is stored can change, just ignore each of the individual
+# split datasets
+Train/
+Test/
+Val/
+final_project_data/
+# And ignore the kitti-converted data.
+ImageSets/
+testing/
+training/
+final_project_data_kitti/
