@@ -13,13 +13,30 @@ import argparse
 from tqdm import tqdm
 
 # constants
-kept_order = {"frame": 0, "truncation_ratio": 1, "occupancy_ratio": 2, "alpha": 3,
-             "left": 4, "top": 5, "right": 6, "bottom": 7, "height": 8, "width": 9, "length": 10,
-             "camera_space_X": 11, "camera_space_Y": 12, "camera_space_Z": 13, "rotation_camera_space_y": 14,
-             "confidence": 15}
-ordered_keys = ["truncation_ratio", "occupancy_ratio", "alpha",
-             "left", "top", "right", "bottom", "height", "width", "length",
-             "camera_space_X", "camera_space_Y", "camera_space_Z", "rotation_camera_space_y"]
+kept_order = {
+    "frame": 0,
+    "truncation_ratio": 1,
+    "occupancy_ratio": 2,
+    "alpha": 3,
+    "left": 4,
+    "top": 5,
+    "right": 6,
+    "bottom": 7,
+    "height": 8,
+    "width": 9,
+    "length": 10,
+    "camera_space_X": 11,
+    "camera_space_Y": 12,
+    "camera_space_Z": 13,
+    "rotation_camera_space_y": 14,
+    "confidence": 15
+}
+ordered_keys = [
+    "truncation_ratio", "occupancy_ratio", "alpha", "left", "top", "right", "bottom", "height",
+    "width", "length", "camera_space_X", "camera_space_Y", "camera_space_Z",
+    "rotation_camera_space_y"
+]
+
 
 def get_pose(fpath_pose, all_ordered):
 
@@ -51,6 +68,7 @@ def get_pose(fpath_pose, all_ordered):
     file.close()
     return all_ordered
 
+
 def get_bbox(fpath_pixels, all_ordered):
     bbox_keys = {}
     old_frames = copy.deepcopy(all_ordered["frame"])
@@ -77,7 +95,7 @@ def get_bbox(fpath_pixels, all_ordered):
         # Keep words
         for word in look_at:
             j = bbox_keys[word]
-            if word =="occupancy_ratio":
+            if word == "occupancy_ratio":
                 value = float(broken_line[j])
                 if value > 0.5:
                     all_ordered[word].append(str(0))
@@ -90,19 +108,35 @@ def get_bbox(fpath_pixels, all_ordered):
             else:
                 all_ordered[word].append(broken_line[j])
     file.close()
-    assert(old_frames == all_ordered["frame"])
+    assert (old_frames == all_ordered["frame"])
     return all_ordered
 
+
 def get_all(dir_path):
-    all_ordered = {"frame": [], "truncation_ratio": [], "occupancy_ratio": [], "alpha": [],
-             "left": [], "top": [], "right": [], "bottom": [], "height": [], "width": [], "length": [],
-             "camera_space_X": [], "camera_space_Y": [], "camera_space_Z": [], "rotation_camera_space_y": [],
-             "confidence": []}
+    all_ordered = {
+        "frame": [],
+        "truncation_ratio": [],
+        "occupancy_ratio": [],
+        "alpha": [],
+        "left": [],
+        "top": [],
+        "right": [],
+        "bottom": [],
+        "height": [],
+        "width": [],
+        "length": [],
+        "camera_space_X": [],
+        "camera_space_Y": [],
+        "camera_space_Z": [],
+        "rotation_camera_space_y": [],
+        "confidence": []
+    }
     fpath_pose = os.path.join(dir_path, "pose.txt")
     fpath_pixels = os.path.join(dir_path, "bbox.txt")
     all_ordered = get_pose(fpath_pose, all_ordered)
     all_ordered = get_bbox(fpath_pixels, all_ordered)
     return all_ordered
+
 
 def to_line(words):
     new_line = "Car "
@@ -110,6 +144,7 @@ def to_line(words):
         new_line += word + " "
     new_line += words[-1] + "\n"
     return new_line
+
 
 def parse_calibration(folder, cameraID):
     frame_lines = {}
@@ -127,8 +162,10 @@ def parse_calibration(folder, cameraID):
     file.close()
     return frame_lines
 
+
 def calib_text(calib_info):
-    P = calib_info[0] + " 0.0 " + calib_info[2] + " 0.0 0.0 " + calib_info[1] + " " + calib_info[3] + " 0.0 0.0 0.0 1.0 0.0\n"
+    P = calib_info[0] + " 0.0 " + calib_info[2] + " 0.0 0.0 " + calib_info[1] + " " + calib_info[
+        3] + " 0.0 0.0 0.0 1.0 0.0\n"
     lines = []
     for i in range(4):
         new_line = "P" + str(i) + ": " + P
@@ -138,6 +175,7 @@ def calib_text(calib_info):
     lines.append("Tr_velo_to_cam: " + identity)
     lines.append("Tr_imu_to_velo: " + identity)
     return lines
+
 
 def write_calib(fpath, calib_info):
     if os.path.exists(fpath):
@@ -153,12 +191,17 @@ if __name__ == '__main__':
 
     ## Parse arguments
     parser = argparse.ArgumentParser('Converter for Final Data files to KITTI format.')
-    parser.add_argument('-d','--data-directory', type=str, default=os.getcwd(),
+    parser.add_argument('-d',
+                        '--data-directory',
+                        type=str,
+                        default=os.getcwd(),
                         help='Data directory of /FinalData')
-    parser.add_argument('-o','--output-directory', type=str, default=os.getcwd(),
+    parser.add_argument('-o',
+                        '--output-directory',
+                        type=str,
+                        default=os.getcwd(),
                         help='Output directory for converted data.')
     args = parser.parse_args()
-
 
     ## Process train and validation files
     print("Begin conversion of training and validation files.")
@@ -168,8 +211,10 @@ if __name__ == '__main__':
     train_path = os.path.join(data_dir, "Train")
     val_path = os.path.join(data_dir, "Val")
 
+    train_dirs = [f"0{i}" for i in range(3)]
+
     train_cameras = {}
-    for train_dir in ["00", "01", "02", "03"]:
+    for train_dir in train_dirs:
         frame_lines = parse_calibration(os.path.join(train_path, "00"), "0")
         train_cameras[train_dir] = frame_lines
 
@@ -187,7 +232,7 @@ if __name__ == '__main__':
     cur_file = None
     train_set = []
     val_set = []
-    for train_dir in ["00", "01", "02", "03"]:
+    for train_dir in train_dirs:
         dir_path = os.path.join(train_path, train_dir)
         all_ordered = get_all(dir_path)
         frames = all_ordered["frame"]
@@ -219,13 +264,14 @@ if __name__ == '__main__':
                     train_set.append(str(total_frames).zfill(6))
 
                 # Image file
-                image_path = os.path.join(train_path, train_dir, "Camera", "rgb_" + frames[i].zfill(5)+".jpg")
+                image_path = os.path.join(train_path, train_dir, "Camera",
+                                          "rgb_" + frames[i].zfill(5) + ".jpg")
                 new_image_path = os.path.join(dir_train_img2, str(total_frames).zfill(6) + ".png")
                 im = Image.open(image_path)
                 im.save(new_image_path)
 
                 # Calibration file
-                calib_path = os.path.join(dir_train_calib, str(total_frames).zfill(6)+".txt")
+                calib_path = os.path.join(dir_train_calib, str(total_frames).zfill(6) + ".txt")
                 calib_info = train_cameras[train_dir][frames[i]]
                 write_calib(calib_path, calib_info)
             new_line = [all_ordered[word][i] for word in ordered_keys]
@@ -269,7 +315,6 @@ if __name__ == '__main__':
 
     print(f"Completed conversion of training and validation files at {args.output_directory}")
 
-
     ## Process test files
 
     print("Begin conversion of test files.")
@@ -296,9 +341,10 @@ if __name__ == '__main__':
     for test_ind in tqdm(int_frames):
         # Image file
         if test_ind < 423:
-            image_path = os.path.join(test_path, "Camera", "rgb_" + str(test_ind).zfill(5)+".jpg")
+            image_path = os.path.join(test_path, "Camera", "rgb_" + str(test_ind).zfill(5) + ".jpg")
         else:
-            image_path = os.path.join(test_path, "CameraExtraCredit", "rgb_" + str(test_ind).zfill(5)+".jpg")
+            image_path = os.path.join(test_path, "CameraExtraCredit",
+                                      "rgb_" + str(test_ind).zfill(5) + ".jpg")
 
         new_image_path = os.path.join(dir_test_img2, str(test_ind).zfill(6) + ".png")
 
@@ -311,7 +357,7 @@ if __name__ == '__main__':
         im.save(new_image_path)
 
         # Calibration file
-        calib_path = os.path.join(dir_test_calib, str(test_ind).zfill(6)+".txt")
+        calib_path = os.path.join(dir_test_calib, str(test_ind).zfill(6) + ".txt")
         calib_info = all_camera[str(test_ind)]
         write_calib(calib_path, calib_info)
 
