@@ -1,5 +1,4 @@
-from typing import Optional
-import os
+from typing import TYPE_CHECKING, Optional
 from pathlib import Path
 import sys
 
@@ -7,29 +6,19 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
-REPO_DIR = Path(os.path.abspath("."))
+REPO_DIR = Path(__file__).parent
 REPO_ROOT = REPO_DIR.parent
 sys.path.append(REPO_ROOT.as_posix())
 
-from utils.visualizer import Visualizer
 from engine.monocon_engine import MonoconEngine
-from model.detector import MonoConDetector
-from utils.engine_utils import tprint, load_cfg, generate_random_seed, set_random_seed, move_data_device
+from utils.engine_utils import (tprint, load_cfg, generate_random_seed, set_random_seed,
+                                move_data_device)
 from dataset.monocon_dataset import MonoConDataset
-from dataset.kitti_raw_dataset import KITTIRawDataset
-from dataset.base_dataset import BaseKITTIMono3DDataset
-
 from utils.kitti_convert_utils import kitti_3d_to_file, kitti_file_to_3d
+from merger import merge_detections
 
-
-# temporarily debugging.
-class Args:
-
-    def __init__(self):
-        self.config_file = "exps/config_dylan_train.yaml"
-        self.checkpoint_file = "exps/checkpoints/epoch_200_final.pth"
-        self.save_dir = "exps/test_results"
-        self.gpu_id: int = 0
+if TYPE_CHECKING:
+    from model.detector import MonoConDetector
 
 
 def set_engine_test_dataset(engine: MonoconEngine, data_dir: str, max_objs: int, batch_size: int,
@@ -48,7 +37,7 @@ def set_engine_test_dataset(engine: MonoconEngine, data_dir: str, max_objs: int,
 
 
 @torch.no_grad()
-def evaluate_minibatch(model: MonoConDetector, test_data, save_dir: str, device: str):
+def evaluate_minibatch(model: 'MonoConDetector', test_data, save_dir: str, device: str):
     """Evaluates and saves converted results for a minibatch"""
     test_data = move_data_device(test_data, device)
     eval_results = model.batch_eval(test_data)
@@ -75,7 +64,7 @@ def main(config_file: str, checkpoint_file: str, gpu_id: int, save_dir: Optional
         save_dir = "exps/test_results"
     save_dir = Path(save_dir)
     output_dir_raw = save_dir / "raw_results"
-    output_file_merged = save_dir / "merged_results.txt"
+    output_file_merged = save_dir / "merged_test_normal.txt"
 
     device = f'cuda:{gpu_id}'
 
@@ -100,6 +89,8 @@ def main(config_file: str, checkpoint_file: str, gpu_id: int, save_dir: Optional
 
     generate_raw_detections(engine, output_dir_raw, device)
 
+    merge_detections(output_dir_raw, output_file_merged)
+
 
 if __name__ == "__main__":
     import argparse
@@ -116,9 +107,6 @@ if __name__ == "__main__":
                         default=None,
                         help="Path to where you would like test outputs to be stored.")
     parser.add_argument("--gpu-id", type=int, default=0)
-
-    # temporarily debugging.
-    # args = Args()
 
     args = parser.parse_args()
 
