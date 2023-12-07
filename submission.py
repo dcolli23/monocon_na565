@@ -5,6 +5,7 @@ import sys
 import torch
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
+import pandas as pd
 
 REPO_DIR = Path(__file__).parent
 REPO_ROOT = REPO_DIR.parent
@@ -54,6 +55,31 @@ def generate_raw_detections(engine: MonoconEngine, output_dir_raw: Path, device:
         evaluate_minibatch(engine.model, test_data, output_dir_raw.as_posix(), device)
 
 
+def split_merged_results(out_file_presplit: Path,
+                         out_file_normal: Path,
+                         out_file_bonus: Path,
+                         split_frame: int = 423):
+    """Splits the full evaluation into normal and bonus credit submission TXT files
+
+    All detection results prior to `split_frame` are designated as "normal credit" detections and
+    all detection results at `split_frame` and later are designated "bonus credit".
+    """
+    # Read all merged detections.
+    df_presplit = pd.read_csv(out_file_presplit.as_posix(), delim_whitespace=True, header=None)
+
+    # Split the file contents.
+    df_normal = df_presplit[df_presplit[0] < split_frame]
+    df_bonus = df_presplit[df_presplit[0] >= split_frame]
+
+    # Write the normal credit detections.
+    df_normal.to_csv(out_file_normal, sep=' ', header=False, index=False)
+    print("Wrote normal credit detections to:", out_file_normal.as_posix())
+
+    # Write the bonus credit detections.
+    df_bonus.to_csv(out_file_bonus, sep=' ', header=False, index=False)
+    print("Wrote extra credit detections to:", out_file_bonus.as_posix())
+
+
 def main(config_file: str, checkpoint_file: str, gpu_id: int, save_dir: Optional[str] = None):
     # Load Config
     cfg = load_cfg(config_file)
@@ -64,7 +90,9 @@ def main(config_file: str, checkpoint_file: str, gpu_id: int, save_dir: Optional
         save_dir = "exps/test_results"
     save_dir = Path(save_dir)
     output_dir_raw = save_dir / "raw_results"
-    output_file_merged = save_dir / "merged_test_normal.txt"
+    output_file_merged_presplit = save_dir / "merged_test_pre_split.txt"
+    output_file_merged_normal = save_dir / "merged_test_normal.txt"
+    output_file_merged_bonus = save_dir / "merged_test_bonus.txt"
 
     device = f'cuda:{gpu_id}'
 
@@ -89,7 +117,10 @@ def main(config_file: str, checkpoint_file: str, gpu_id: int, save_dir: Optional
 
     generate_raw_detections(engine, output_dir_raw, device)
 
-    merge_detections(output_dir_raw, output_file_merged)
+    merge_detections(output_dir_raw, output_file_merged_presplit)
+
+    split_merged_results(output_file_merged_presplit, output_file_merged_normal,
+                         output_file_merged_bonus)
 
 
 if __name__ == "__main__":
