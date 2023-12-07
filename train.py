@@ -1,45 +1,62 @@
 import os
 import sys
+from pathlib import Path
+
 import torch
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from engine.monocon_engine import MonoconEngine
-from utils.engine_utils import tprint, get_default_cfg, set_random_seed, generate_random_seed
+from utils.engine_utils import (tprint, get_default_cfg, set_random_seed, generate_random_seed,
+                                load_cfg)
 
 
+def main(config_file: Path):
+    # Some Torch Settings
+    torch_version = int(torch.__version__.split('.')[1])
+    if torch_version >= 7:
+        torch.backends.cuda.matmul.allow_tf32 = False
+        torch.backends.cudnn.allow_tf32 = False
 
-# Some Torch Settings
-torch_version = int(torch.__version__.split('.')[1])
-if torch_version >= 7:
-    torch.backends.cuda.matmul.allow_tf32 = False
-    torch.backends.cudnn.allow_tf32 = False
+    # Get Config from 'config/monocon_configs.py'
+    # cfg = get_default_cfg()
+
+    # Load our own config file.
+    cfg = load_cfg(config_file.as_posix())
+
+    # Set Benchmark
+    # If this is set to True, it may consume more memory. (Default: True)
+    if cfg.get('USE_BENCHMARK', True):
+        torch.backends.cudnn.enabled = True
+        torch.backends.cudnn.benchmark = True
+        tprint(f"CuDNN Benchmark is enabled.")
+
+    # Set Random Seed
+    seed = cfg.get('SEED', -1)
+    seed = generate_random_seed(seed)
+    set_random_seed(seed)
+
+    cfg.SEED = seed
+    tprint(f"Using Random Seed {seed}")
+
+    # Initialize Engine
+    engine = MonoconEngine(cfg)
+
+    # Start Training from Scratch
+    # Output files will be saved to 'cfg.OUTPUT_DIR'.
+    engine.train()
 
 
-# Get Config from 'config/monocon_configs.py'
-cfg = get_default_cfg()
+if __name__ == "__main__":
+    import argparse
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("config_file",
+                        type=Path,
+                        help="Path to the configuration file to use for training")
 
-# Set Benchmark
-# If this is set to True, it may consume more memory. (Default: True)
-if cfg.get('USE_BENCHMARK', True):
-    torch.backends.cudnn.enabled = True
-    torch.backends.cudnn.benchmark = True
-    tprint(f"CuDNN Benchmark is enabled.")
+    args = parser.parse_args()
 
+    print("Args:", args)
 
-# Set Random Seed
-seed = cfg.get('SEED', -1)
-seed = generate_random_seed(seed)
-set_random_seed(seed)
-
-cfg.SEED = seed
-tprint(f"Using Random Seed {seed}")
-
-
-# Initialize Engine
-engine = MonoconEngine(cfg)
-
-
-# Start Training from Scratch
-# Output files will be saved to 'cfg.OUTPUT_DIR'.
-engine.train()
+    # print(args.config_file)
+    main(**vars(args))
