@@ -23,3 +23,6 @@ final_project_data_kitti/
 # Ignore any testing results
 test_results/
 raw_results/
+
+# Ignore VS Code configuration
+.vscode/
