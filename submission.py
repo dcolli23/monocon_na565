@@ -12,8 +12,8 @@ REPO_ROOT = REPO_DIR.parent
 sys.path.append(REPO_ROOT.as_posix())
 
 from engine.monocon_engine import MonoconEngine
-from utils.engine_utils import (tprint, load_cfg, generate_random_seed, set_random_seed,
-                                move_data_device)
+from utils.engine_utils import (tprint, load_cfg, generate_random_seed,
+                                set_random_seed, move_data_device)
 from dataset.monocon_dataset import MonoConDataset
 from utils.kitti_convert_utils import kitti_3d_to_file, kitti_file_to_3d
 from merger import merge_detections
@@ -22,8 +22,8 @@ if TYPE_CHECKING:
     from model.detector import MonoConDetector
 
 
-def set_engine_test_dataset(engine: MonoconEngine, data_dir: str, max_objs: int, batch_size: int,
-                            num_workers: int):
+def set_engine_test_dataset(engine: MonoconEngine, data_dir: str,
+                            max_objs: int, batch_size: int, num_workers: int):
     """Sets the MonoconEngine's test dataset to the true test dataset"""
     # Overwrite the "test" dataset loaded from the config because the config file likely used the
     # validation dataset. This is a weird way to configure things in my opinion.
@@ -38,21 +38,28 @@ def set_engine_test_dataset(engine: MonoconEngine, data_dir: str, max_objs: int,
 
 
 @torch.no_grad()
-def evaluate_minibatch(model: 'MonoConDetector', test_data, save_dir: str, device: str):
+def evaluate_minibatch(model: 'MonoConDetector', test_data, save_dir: str,
+                       device: str):
     """Evaluates and saves converted results for a minibatch"""
     test_data = move_data_device(test_data, device)
     eval_results = model.batch_eval(test_data)
-    kitti_3d_to_file(eval_results, test_data["img_metas"], folder=save_dir, single_file=False)
+    kitti_3d_to_file(eval_results,
+                     test_data["img_metas"],
+                     folder=save_dir,
+                     single_file=False)
 
 
 @torch.no_grad()
-def generate_raw_detections(engine: MonoconEngine, output_dir_raw: Path, device: str):
+def generate_raw_detections(engine: MonoconEngine, output_dir_raw: Path,
+                            device: str):
     if engine.model.training:
         engine.model.eval()
         print("Model converted to eval mode.")
 
-    for test_data in tqdm(engine.test_loader, desc="Generating Raw Detections"):
-        evaluate_minibatch(engine.model, test_data, output_dir_raw.as_posix(), device)
+    for test_data in tqdm(engine.test_loader,
+                          desc="Generating Raw Detections"):
+        evaluate_minibatch(engine.model, test_data, output_dir_raw.as_posix(),
+                           device)
 
 
 def split_merged_results(out_file_presplit: Path,
@@ -65,7 +72,9 @@ def split_merged_results(out_file_presplit: Path,
     all detection results at `split_frame` and later are designated "bonus credit".
     """
     # Read all merged detections.
-    df_presplit = pd.read_csv(out_file_presplit.as_posix(), delim_whitespace=True, header=None)
+    df_presplit = pd.read_csv(out_file_presplit.as_posix(),
+                              delim_whitespace=True,
+                              header=None)
 
     # Split the file contents.
     df_normal = df_presplit[df_presplit[0] < split_frame]
@@ -80,7 +89,11 @@ def split_merged_results(out_file_presplit: Path,
     print("Wrote extra credit detections to:", out_file_bonus.as_posix())
 
 
-def main(config_file: str, checkpoint_file: str, gpu_id: int, save_dir: Optional[str] = None):
+def prep_for_submission(config_file: str,
+                        checkpoint_file: str,
+                        gpu_id: int,
+                        save_dir: Optional[str] = None,
+                        visualize: bool = False):
     # Load Config
     cfg = load_cfg(config_file)
     cfg.GPU_ID = gpu_id
@@ -112,15 +125,19 @@ def main(config_file: str, checkpoint_file: str, gpu_id: int, save_dir: Optional
     engine = MonoconEngine(cfg, auto_resume=False, is_test=True)
     engine.load_checkpoint(checkpoint_file, verbose=True)
 
-    set_engine_test_dataset(engine, cfg.DATA.ROOT, cfg.MODEL.HEAD.MAX_OBJS, cfg.DATA.BATCH_SIZE,
-                            cfg.DATA.NUM_WORKERS)
+    set_engine_test_dataset(engine, cfg.DATA.ROOT, cfg.MODEL.HEAD.MAX_OBJS,
+                            cfg.DATA.BATCH_SIZE, cfg.DATA.NUM_WORKERS)
 
     generate_raw_detections(engine, output_dir_raw, device)
 
     merge_detections(output_dir_raw, output_file_merged_presplit)
 
-    split_merged_results(output_file_merged_presplit, output_file_merged_normal,
-                         output_file_merged_bonus)
+    split_merged_results(output_file_merged_presplit,
+                         output_file_merged_normal, output_file_merged_bonus)
+
+    if visualize:
+        print("Visualizing results")
+        engine.visualize(save_dir, draw_items=['2d', '3d'])
 
 
 if __name__ == "__main__":
@@ -130,15 +147,24 @@ if __name__ == "__main__":
     parser.add_argument("config_file",
                         type=str,
                         help="Path to the YAML file used to train the model.")
-    parser.add_argument("checkpoint_file",
-                        type=str,
-                        help="Path to the PyTorch checkpoint file (.pth) you wish to test")
-    parser.add_argument("--save-dir",
-                        type=str,
-                        default=None,
-                        help="Path to where you would like test outputs to be stored.")
+    parser.add_argument(
+        "checkpoint_file",
+        type=str,
+        help="Path to the PyTorch checkpoint file (.pth) you wish to test")
+    parser.add_argument(
+        "--save-dir",
+        type=str,
+        default=None,
+        help="Path to where you would like test outputs to be stored.")
     parser.add_argument("--gpu-id", type=int, default=0)
+    parser.add_argument(
+        "--visualize",
+        # type=bool,
+        action="store_true",
+        default=False)
 
     args = parser.parse_args()
 
-    main(**vars(args))
+    # print(args)
+
+    prep_for_submission(**vars(args))

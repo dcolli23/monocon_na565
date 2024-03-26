@@ -211,7 +211,7 @@ if __name__ == '__main__':
     train_path = os.path.join(data_dir, "Train")
     val_path = os.path.join(data_dir, "Val")
 
-    train_dirs = [f"0{i}" for i in range(3)]
+    train_dirs = [f"0{i}" for i in range(4)]
 
     train_cameras = {}
     for train_dir in train_dirs:

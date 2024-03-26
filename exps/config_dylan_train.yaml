@@ -7,7 +7,7 @@ DATA:
     MIN_DEPTH: 2
     MIN_HEIGHT: 25
   NUM_WORKERS: 4
-  ROOT: /home/dcolli23/code/school/navarch565_self_driving_cars/final_project/monocon_na565/final_project_data_kitti
+  ROOT: /home/dcolli23/code/umich_coursework/navarch565_self_driving_cars/final_project/monocon_na565/final_project_data_kitti
   TEST_SPLIT: val
   TRAIN_SPLIT: train
 DESCRIPTION: MonoCon Default Configuration
